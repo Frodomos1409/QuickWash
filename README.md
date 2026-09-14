@@ -1,59 +1,104 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# QuickWash
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema de reserva de máquinas de lavandería, desarrollado en Laravel 12 para el curso de Proyecto de Sistemas 3.
 
-## About Laravel
+## Roles
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+**Estudiante**
+- Registro e inicio de sesión.
+- Ver máquinas disponibles.
+- Registrar una reserva (máquina, fecha, horario).
+- Consultar sus reservas.
+- Cancelar una reserva (mínimo 2 horas antes, solo si está `pendiente`).
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+**Personal**
+- Registro e inicio de sesión.
+- Ver todas las reservas realizadas.
+- Cambiar el estado de una reserva (`pendiente`, `en_proceso`, `finalizada`, `cancelada`).
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Reglas de negocio
 
-## Learning Laravel
+- Una máquina no puede tener más de una reserva activa en el mismo horario.
+- Cada estudiante puede tener máximo 3 reservas activas (`pendiente`/`en_proceso`).
+- Solo las reservas en estado `pendiente` pueden cancelarse, y solo por el propio estudiante.
+- El personal solo puede cambiar el estado de una reserva, no editar sus otros datos.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Requisitos
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- PHP 8.2+
+- Composer
+- Node.js 18+ (para compilar los assets con Vite)
 
-## Laravel Sponsors
+## Instalación local
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+touch database/database.sqlite
+php artisan migrate --seed
+npm run build
+php artisan serve
+```
 
-### Premium Partners
+Usuarios de prueba creados por el seeder (contraseña `password`):
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+- `estudiante@quickwash.test` — rol Estudiante
+- `personal@quickwash.test` — rol Personal
 
-## Contributing
+## Despliegue gratuito
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Para desplegar QuickWash sin costo se recomienda separar la app (Render) de la base de datos (Supabase), porque el disco de los planes free de la mayoría de hosts es efímero — usar SQLite ahí haría que los datos se borren en cada redeploy.
 
-## Code of Conduct
+### 1. Base de datos: Supabase (Postgres gratis y persistente)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+1. Crea un proyecto en [supabase.com](https://supabase.com) (plan Free).
+2. En **Project Settings → Database → Connection string**, copia los datos de conexión (host, puerto, usuario, contraseña, nombre de base de datos). Usa el modo *Session pooler* si tu host no soporta IPv6.
+3. Nota: un proyecto Free de Supabase se pausa tras ~1 semana sin uso; los datos no se pierden, pero hay que reactivarlo manualmente desde el dashboard si eso pasa.
 
-## Security Vulnerabilities
+### 2. Aplicación: Render (Web Service gratis)
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+1. Entra a [render.com](https://render.com) y crea una cuenta (puedes usar tu GitHub).
+2. **New + → Web Service**, conecta el repositorio `Frodomos1409/QuickWash`.
+3. Configura:
+   - **Runtime**: PHP
+   - **Build Command**:
+     ```
+     composer install --no-dev --optimize-autoloader && npm install && npm run build
+     ```
+   - **Start Command**:
+     ```
+     php artisan migrate --force && php artisan config:cache && php artisan serve --host 0.0.0.0 --port $PORT
+     ```
+4. En **Environment**, agrega estas variables (reemplaza los valores de Supabase):
 
-## License
+   | Variable | Valor |
+   |---|---|
+   | `APP_NAME` | `QuickWash` |
+   | `APP_ENV` | `production` |
+   | `APP_DEBUG` | `false` |
+   | `APP_KEY` | genera uno con `php artisan key:generate --show` y pégalo con el prefijo `base64:` |
+   | `APP_URL` | la URL que te da Render (ej. `https://quickwash.onrender.com`) |
+   | `DB_CONNECTION` | `pgsql` |
+   | `DB_HOST` | host de Supabase |
+   | `DB_PORT` | `5432` (o `6543` si usas el pooler) |
+   | `DB_DATABASE` | `postgres` |
+   | `DB_USERNAME` | usuario de Supabase |
+   | `DB_PASSWORD` | contraseña de Supabase |
+   | `DB_SSLMODE` | `require` |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+5. Despliega. Render instalará dependencias, correrá las migraciones contra Supabase y levantará la app.
+6. Si quieres los usuarios y máquinas de ejemplo, corre una sola vez desde la shell de Render (o localmente apuntando a la DB de producción): `php artisan db:seed`.
+
+El plan free de Render "duerme" el servicio tras ~15 minutos sin tráfico; la primera visita después de eso tarda unos segundos en despertar — normal y sin costo.
+
+### Alternativa más simple (un solo clic, sin tarjeta)
+
+[Railway.app](https://railway.app) detecta Laravel automáticamente (Nixpacks) sin necesidad de configurar build/start command, e incluye Postgres con un clic dentro del mismo proyecto. Su plan gratuito es limitado a un monto de uso mensual, pero es la opción más rápida para una demo o entrega.
+
+## Stack
+
+- Laravel 12 + Breeze (Blade)
+- Tailwind CSS + Alpine.js
+- SQLite en desarrollo / PostgreSQL en producción
